@@ -1,9 +1,12 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
-LOCAL_MODEL_PATH = "./modelos/gpt2-medium"
+LOCAL_MODEL_PATH = "./modelos/phi-2"
 
-def gerar_info_modelo(model_name="gpt2"):
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(device)
+def gerar_info_modelo(model_name="phi-2"):
     # Carrega tokenizer e modelo
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -18,13 +21,12 @@ def gerar_info_modelo(model_name="gpt2"):
     print(f"Número de camadas (layers): {n_layers}")
 
 
-def gerar_texto(prompt, model_name="gpt2", max_length=100, temperature=0.7):
+def gerar_texto(prompt, model_name="phi-2", max_length=100, temperature=0.7):
     # Carrega tokenizer e modelo
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     # Tokeniza o prompt
-    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
 
     # Gera texto continuando o prompt
     outputs = model.generate(
@@ -42,6 +44,6 @@ def gerar_texto(prompt, model_name="gpt2", max_length=100, temperature=0.7):
     return texto_gerado
 
 if __name__ == "__main__":
-    prompt = "Once upon a time"
+    prompt = "Question: Is Brasil a China commercial partner? Answer:"
     resultado = gerar_texto(prompt, model_name=LOCAL_MODEL_PATH)
     print("Texto gerado:\n", resultado)
