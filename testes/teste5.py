@@ -1,27 +1,67 @@
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import BaseTool
 from typing import Optional
-import pandas as pd
+import requests
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import Chroma
 import os
 
-llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
+llm = LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
+class JournalInfoTool(BaseTool):
+    name: str = "Journal Information"
+    description: str = "Retrieves detailed information about academic journals using their ISSN. Returns title, publisher, total articles, and active articles from Crossref API."
+    
+    def _run(self, issn: str) -> str:
+        """
+        Retrieves journal information from Crossref API using ISSN
+        
+        Args:
+            issn: The ISSN of the journal
+            
+        Returns:
+            Formatted string with journal information
+        """
+        url = f"https://api.crossref.org/journals/{issn}"
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            message = data.get("message", {})
+            journal_info = {
+                "title": message.get("title", "Não disponível"),
+                "publisher": message.get("publisher", "Não disponível"),
+                "ISSN": message.get("ISSN", []),
+                "total_articles": message.get("counts", {}).get("total-dois", 0),
+                "active_articles": message.get("counts", {}).get("current-dois", 0)
+            }
+            
+            formatted_output = (
+                f"Journal Information:\n"
+                f"Title: {journal_info['title']}\n"
+                f"Publisher: {journal_info['publisher']}\n"
+                f"ISSN: {', '.join(journal_info['ISSN'])}\n"
+                f"Total Articles: {journal_info['total_articles']}\n"
+                f"Active Articles: {journal_info['active_articles']}"
+            )
+            
+            return formatted_output
+            
+        except requests.exceptions.RequestException as e:
+            return f"Error fetching journal information: {str(e)}"
 
 class JournalSearchTool(BaseTool):
     name: str = "Journal Search"
     description: str = "Searches for academic journals in the Sucupira database based on similarity to the query. Returns journal titles, evaluation areas, ISSN, Qualis rating, and similarity scores."
     
-    # Declare all fields as class attributes
-    chroma_db_dir: str = "./sucupira_chroma_db"
+    chroma_db_dir: str = "../sucupira_chroma_db"
     embedding_model_name: str = 'paraphrase-MiniLM-L6-v2'
     embedding_function: Optional[SentenceTransformerEmbeddings] = None
     vectorstore: Optional[Chroma] = None
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Now you can initialize these fields
         if not os.path.exists(self.chroma_db_dir):
             raise ValueError(f"Database directory '{self.chroma_db_dir}' not found")
             
@@ -59,7 +99,6 @@ class JournalSearchTool(BaseTool):
                     "Similarity Score": float(score)
                 })
             
-            # Format the results nicely
             formatted_results = []
             for i, res in enumerate(output, 1):
                 formatted = f"\n{i}. {res['Title']}\n"
@@ -74,31 +113,38 @@ class JournalSearchTool(BaseTool):
         except Exception as e:
             return f"Error searching journals: {str(e)}"
 
-
-# Exemplo de uso em um agente
+# Create researcher agent with both tools
 researcher = Agent(
     role='Pesquisador Acadêmico',
-    goal='Encontrar revistas científicas relevantes',
-    backstory='Especialista em identificar periódicos de qualidade para publicação',
-    tools=[JournalSearchTool()],
-    llm=llm
+    goal='Encontrar revistas científicas relevantes e obter informações detalhadas sobre elas',
+    backstory='Especialista em identificar periódicos de qualidade para publicação e analisar seus dados',
+    tools=[JournalSearchTool(), JournalInfoTool()],
+    llm=llm,
+    verbose=True
 )
 
-# Create task
-research_task = Task(
-    description='liste os 5 periódicos mais relevantes de computação e medicina e seus issn',
+# Create tasks
+search_task = Task(
+    description='Liste os 10 periódicos mais relevantes de computation e medicine e seus ISSNs',
     agent=researcher,
-    expected_output='lista com as 5 revistas mais similares com o issn'
+    expected_output='Uma lista formatada com as 10 revistas mais similares, incluindo título, área de avaliação, ISSN e qualis rating'
+)
+
+info_task = Task(
+    description='Para cada ISSN encontrado na tarefa anterior, obtenha informações detalhadas sobre o periódico',
+    agent=researcher,
+    expected_output='Informações detalhadas de cada periódico incluindo editora, total de artigos e artigos ativos',
+    context=[search_task]
 )
 
 # Create and run crew
 crew = Crew(
     agents=[researcher],
-    tasks=[research_task],
+    tasks=[search_task, info_task],
     process=Process.sequential,
     verbose=True,
     llm=llm
 )
 
 result = crew.kickoff()
-print("\nResult:", result)
+print("\nFinal Result:", result)

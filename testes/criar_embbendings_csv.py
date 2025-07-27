@@ -5,7 +5,7 @@ import numpy as np # Importar numpy
 # 1. Carregar o arquivo CSV
 # Suponha que seu CSV se chame 'dados.csv' e tenha as colunas 'titulo' e 'descricao'
 try:
-    df = pd.read_csv('sucupira.csv')
+    df = pd.read_csv('../sucupira.csv')
 except FileNotFoundError:
     print("Erro: O arquivo 'sucupira.csv' não foi encontrado.")
 
@@ -38,7 +38,7 @@ print(f"Tipo de dado de um embedding: {type(df['embedding'].iloc[0])}")
 
 # --- NOVAS SEÇÕES PARA SALVAR OS EMBEDDINGS ---
 
-output_csv_with_embeddings = 'sucupira_com_embeddings.csv'
+output_csv_with_embeddings = '../sucupira_com_embeddings.csv'
 
 # Salvar o DataFrame completo com as colunas originais e a nova coluna 'embedding'
 # index=False evita que o Pandas escreva o índice do DataFrame como uma coluna.
