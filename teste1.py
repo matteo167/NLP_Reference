@@ -1,8 +1,7 @@
-
 from crewai import Agent, Task, Process, Crew, LLM
 
 #LLM Object from crewai package
-llm=LLM(model="ollama/llama3.2:1b", base_url="http://localhost:11434")
+llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
 info_agent = Agent(
     role="Information Agent",
@@ -14,7 +13,7 @@ info_agent = Agent(
 )
 
 task1 = Task(
-    description="Tell me all about the eagles.",
+    description="Tell me all about the hamsters.",
     expected_output="Give me a quick summary and then also give me 7 bullet points describing it.",
     agent=info_agent
 )

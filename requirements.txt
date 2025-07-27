@@ -1,5 +1,6 @@
-crewai
-crewai[web,pdf]
 pandas
-langchain
-faiss-gpu
+langchain-community
+chromadb
+sentence-transformers
+crewai
+requests
