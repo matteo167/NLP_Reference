@@ -8,14 +8,13 @@ info_agent = Agent(
     role="Information Agent",
     goal="Give compelling information about a certain topic",
     backstory="""
-        You love to know information.  People love and hate you for it.  You win most of the
-        quizzes at your local pub.
+        You love to know information.  People love you for it.
     """,
     llm=llm
 )
 
 task1 = Task(
-    description="Tell me all about the box jellyfish.",
+    description="Tell me all about the eagles.",
     expected_output="Give me a quick summary and then also give me 7 bullet points describing it.",
     agent=info_agent
 )
